@@ -1,5 +1,6 @@
 package com.sbrf.reboot.account;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -12,7 +13,7 @@ public enum Currency {
 
     private String name;
 
-    private Currency(String name) {
+    Currency(String name) {
         this.name = name;
     }
 }
