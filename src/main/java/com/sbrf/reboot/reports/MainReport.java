@@ -9,8 +9,15 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 @AllArgsConstructor
 @Getter
@@ -23,18 +30,39 @@ public class MainReport {
     LocalDate minDate;
     LocalDate maxDate;
 
-    public BigDecimal getTotalsWithCompletableFuture(Stream<Client> inData) {
-       //return BigDecimal.ZERO;
+    public BigDecimal getTotalsSimple(Stream<Client> inData) {
         return inData.filter(client -> (client.getAge() >= minAge))
                 .filter(client->(client.getAge() <= maxAge))
-                .map(Client::getAccounts)
-                .flatMap(Collection::stream)
+                .flatMap(Client::accountsAsStream)
                 .filter(acc->currency.equals(acc.getCurrency()))
                 .filter(acc->minDate.isBefore(acc.getDateCreate()))
                 .filter(acc->maxDate.isAfter(acc.getDateCreate()))
                 .map(Account::getBalance)
                 .reduce(BigDecimal::add)
-                .orElse(BigDecimal.ZERO)
-        ;
+                .orElse(BigDecimal.ZERO);
+    }
+
+    public BigDecimal getTotalsWithCompletableFuture(Stream<Client> inData) {
+        Stream<Client> filteredData = inData.filter(client->(client.getAge() >= minAge && client.getAge() <= maxAge));
+        return filteredData.map(
+                        client->CompletableFuture.supplyAsync(()->client.accountsAsStream()
+                            .filter(acc->currency.equals(acc.getCurrency()))
+                            .filter(acc->minDate.isBefore(acc.getDateCreate()))
+                            .filter(acc->maxDate.isAfter(acc.getDateCreate()))
+                            .map(Account::getBalance)
+                            .reduce(BigDecimal::add)
+                            .orElse(BigDecimal.ZERO)
+                        ).join()
+        ).reduce(BigDecimal::add).orElse(BigDecimal.ZERO);
+    }
+
+    public BigDecimal getTotalsWithReact(Stream<Client> inData) {
+        Flux<Account> fluxData = Flux.fromStream(inData
+                .filter(client->(client.getAge() >= minAge && client.getAge() <= maxAge))
+                .flatMap(Client::accountsAsStream)
+        );
+
+
+        return BigDecimal.ZERO;
     }
 }
