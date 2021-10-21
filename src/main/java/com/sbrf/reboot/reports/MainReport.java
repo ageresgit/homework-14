@@ -14,8 +14,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import reactor.core.Disposables;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
 
@@ -57,15 +59,17 @@ public class MainReport {
     }
 
     public BigDecimal getTotalsWithReact(Stream<Client> inData) {
+        AtomicReference<BigDecimal> atomicNumber = new AtomicReference<>(BigDecimal.ZERO);
         Flux<Client> fluxData = Flux.fromStream(inData);
-        Flux<Mono<BigDecimal>> fluxMono =
+
         fluxData.filter(client->(client.getAge() >= minAge && client.getAge() <= maxAge))
                 .map(Client::accountsAsStream)
                 .map(streamAcc->Flux.fromStream(streamAcc).filter(acc->currency.equals(acc.getCurrency())).filter(acc->minDate.isBefore(acc.getDateCreate()))
                         .filter(acc->maxDate.isAfter(acc.getDateCreate()))
                         .map(Account::getBalance)
-                        .reduce(BigDecimal::add)
-                );
-        return fluxMono.blockLast().block();
+                        .reduce(BigDecimal::add).subscribe(x-> atomicNumber.getAndUpdate(num->num.add(x)))
+                ).blockLast();
+
+        return atomicNumber.get();
     }
 }
