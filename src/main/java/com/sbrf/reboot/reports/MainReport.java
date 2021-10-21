@@ -57,12 +57,15 @@ public class MainReport {
     }
 
     public BigDecimal getTotalsWithReact(Stream<Client> inData) {
-        Flux<Account> fluxData = Flux.fromStream(inData
-                .filter(client->(client.getAge() >= minAge && client.getAge() <= maxAge))
-                .flatMap(Client::accountsAsStream)
-        );
-
-
-        return BigDecimal.ZERO;
+        Flux<Client> fluxData = Flux.fromStream(inData);
+        Flux<Mono<BigDecimal>> fluxMono =
+        fluxData.filter(client->(client.getAge() >= minAge && client.getAge() <= maxAge))
+                .map(Client::accountsAsStream)
+                .map(streamAcc->Flux.fromStream(streamAcc).filter(acc->currency.equals(acc.getCurrency())).filter(acc->minDate.isBefore(acc.getDateCreate()))
+                        .filter(acc->maxDate.isAfter(acc.getDateCreate()))
+                        .map(Account::getBalance)
+                        .reduce(BigDecimal::add)
+                );
+        return fluxMono.blockLast().block();
     }
 }

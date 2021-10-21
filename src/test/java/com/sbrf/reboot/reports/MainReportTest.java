@@ -6,6 +6,8 @@ import com.sbrf.reboot.client.Client;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,6 +59,6 @@ public class MainReportTest  {
     @Test
     void getTotalsWithReact() {
         MainReport report = new MainReport(Currency.RUB, 20, 30, LocalDate.now().minusDays(20), LocalDate.now().minusDays(5));
-        assertEquals(BigDecimal.valueOf(0), report.getTotalsWithReact(clients.stream()));
+        assertEquals(BigDecimal.valueOf(20), report.getTotalsWithReact(clients.stream()));
     }
 }
